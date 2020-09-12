@@ -16,3 +16,5 @@ Signature must contain the following information:
  Claimer must call claim function with the token to claim, the address that distributed the token, the amount(s) and the signature(s)
  
  Distributions can be done in batches, and claimers can accumulate signatures to claim multiple batches in a single transaction.
+
+ Note that this method allows for the distributor to double sign, and the first address that claims the tokens is the one only receiver.
