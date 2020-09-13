@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: GNU
 
-import "./IERC20.sol";
-import "./SafeMath.sol";
-import "./EthAddressLib.sol";
+import "../interfaces/IERC20.sol";
+import "../libraries/SafeMath.sol";
+import "../libraries/EthAddressLib.sol";
 
 pragma solidity ^0.6.0;
 
@@ -60,33 +60,31 @@ contract Claim {
 
     function claim(address token, address distributor, uint256[] calldata amounts, uint8[] calldata _v, bytes32[] calldata _r, bytes32[] calldata _s)
     external
-    returns (bool) 
+    returns (uint256 returnAmount) 
     {
         require (amounts.length > 0);
         require ((amounts.length == _v.length) &&
                  (_v.length == _r.length) &&
                  (_r.length == _s.length));
-        uint256 currentAmount = 0;
+        returnAmount = 0;
         uint256 currentNonce = nonces[token][distributor][msg.sender];
         for (uint256 i = 0; i < amounts.length; i++) {
-            // bytes32 message = keccak256(abi.encodePacked(msg.sender, token, amounts[i], currentNonce));
-            require (distributor == ecrecover(keccak256(abi.encodePacked(msg.sender, token, amounts[i], currentNonce)), _v[i], _r[i], _s[i]));
-            currentAmount = currentAmount.add(amounts[i]);
+            bytes32 message = keccak256(abi.encodePacked(msg.sender, token, amounts[i], currentNonce));
+            require (distributor == ecrecover(message, _v[i], _r[i], _s[i]));
+            returnAmount = returnAmount.add(amounts[i]);
             currentNonce++;
         }
         
-        require (currentAmount > 0);
-        require (balances[token][distributor] >= currentAmount);
+        require (returnAmount > 0);
 
-        balances[token][distributor] = balances[token][distributor].sub(currentAmount);
+        balances[token][distributor] = balances[token][distributor].sub(returnAmount);
         nonces[token][distributor][msg.sender] = currentNonce;
 
         if (token == EthAddressLib.ethAddress()) {
-            require (msg.sender.send(currentAmount));
+            require (msg.sender.send(returnAmount));
         } else {
-            require (IERC20(token).transfer(msg.sender, currentAmount));
+            require (IERC20(token).transfer(msg.sender, returnAmount));
         }
-        return true;
     }
 
 }
