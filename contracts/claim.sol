@@ -62,20 +62,22 @@ contract Claim {
     external
     returns (uint256 returnAmount) 
     {
-        require (amounts.length > 0);
-        require ((amounts.length == _v.length) &&
+        require ((amounts.length > 0) &&
+                 (amounts.length == _v.length) &&
                  (_v.length == _r.length) &&
-                 (_r.length == _s.length));
+                 (_r.length == _s.length), "invalid inputs");
         returnAmount = 0;
         uint256 currentNonce = nonces[token][distributor][msg.sender];
+        
         for (uint256 i = 0; i < amounts.length; i++) {
-            bytes32 message = keccak256(abi.encodePacked(msg.sender, token, amounts[i], currentNonce));
-            require (distributor == ecrecover(message, _v[i], _r[i], _s[i]));
+            bytes32 message = keccak256(abi.encodePacked("\x19Ethereum Signed Message:\n104", msg.sender, token, amounts[i], currentNonce));
+            require (distributor == ecrecover(message, _v[i], _r[i], _s[i]), "invalid signature");
             returnAmount = returnAmount.add(amounts[i]);
             currentNonce++;
         }
         
-        require (returnAmount > 0);
+        require (returnAmount > 0, "zero amount");
+        require (balances[token][distributor] >= returnAmount, "insuf balance");
 
         balances[token][distributor] = balances[token][distributor].sub(returnAmount);
         nonces[token][distributor][msg.sender] = currentNonce;
