@@ -87,7 +87,7 @@ def test_distribute_ether(claim_contract, tokens, currency):
 
     sgn0 = sign_claim(accounts[0], accounts[1].address, currency, web3.toWei(1,'ether'), 0)
 
-    recovered = web3.eth.account.recoverHash(sgn0.h, (sgn0.v, sgn0.r, sgn0.s))
+    recovered = web3.eth.account.recoverHash(sgn0.h, sgn0.vrs)
 
     assert recovered == accounts[0].address
 
