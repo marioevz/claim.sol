@@ -66,7 +66,7 @@ contract MerkleClaim {
     function _checkClaim(address token, bytes32[] memory _merkleProof, uint256 index, address account, uint256 amount)
     private
     returns (uint256) {
-        bytes32 merkleRoot = _merkleProof[_merkleProof.length];
+        bytes32 merkleRoot = _merkleProof[_merkleProof.length - 1];
         bytes32[] memory merkleProof = new bytes32[](_merkleProof.length - 1);
         for(uint256 i = 0; i < _merkleProof.length - 1; i++) {
             merkleProof[i] = _merkleProof[i];
