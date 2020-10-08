@@ -71,10 +71,10 @@ contract MerkleClaim {
         for(uint256 i = 0; i < _merkleProof.length - 1; i++) {
             merkleProof[i] = _merkleProof[i];
         }
-        require (!isClaimed(token, merkleRoot, index));
-        require (_balances[token][merkleRoot] >= amount);
+        require (!isClaimed(token, merkleRoot, index), "already claimed");
+        require (_balances[token][merkleRoot] >= amount, "insufficient balance");
         bytes32 leaf = keccak256(abi.encodePacked(index, account, amount));
-        require (MerkleProof.verify(merkleProof, merkleRoot, leaf));
+        require (MerkleProof.verify(merkleProof, merkleRoot, leaf), "invalid proof");
         _balances[token][merkleRoot] = _balances[token][merkleRoot].sub(amount);
         _setClaimed(token, merkleRoot, index);
         return amount;
