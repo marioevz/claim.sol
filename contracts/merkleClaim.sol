@@ -59,45 +59,62 @@ contract MerkleClaim {
     {
         require(merkleRoot != 0);
         require (check_transfer_amount(token, amount));
-        _balances[token][merkleRoot] = _balances[token][merkleRoot].add(amount); // _balances[token][signer].add(amount);
+        _balances[token][merkleRoot] = _balances[token][merkleRoot].add(amount);
         return true;
     }
 
-    function _checkClaim(address token, bytes32[] memory _merkleProof, uint256 index, address account, uint256 amount)
+    function _checkClaim (
+        address token,
+        bytes32 merkleRoot,
+        bytes32[] memory merkleProof,
+        uint256 index,
+        address account,
+        uint256 amount
+    )
     private
-    returns (uint256) {
-        bytes32 merkleRoot = _merkleProof[_merkleProof.length - 1];
-        bytes32[] memory merkleProof = new bytes32[](_merkleProof.length - 1);
-        for(uint256 i = 0; i < _merkleProof.length - 1; i++) {
-            merkleProof[i] = _merkleProof[i];
-        }
+    {
+        require(merkleProof.length > 0, "proof length");
         require (!isClaimed(token, merkleRoot, index), "already claimed");
         require (_balances[token][merkleRoot] >= amount, "insufficient balance");
         bytes32 leaf = keccak256(abi.encodePacked(index, account, amount));
         require (MerkleProof.verify(merkleProof, merkleRoot, leaf), "invalid proof");
         _balances[token][merkleRoot] = _balances[token][merkleRoot].sub(amount);
         _setClaimed(token, merkleRoot, index);
-        return amount;
     }
 
-    function claim(address token, address payable account, bytes32[] calldata merkleProof, uint256 index, uint256 amount)
+    function claim (
+        address token,
+        address payable account,
+        bytes32 merkleRoot,
+        bytes32[] calldata merkleProof,
+        uint256 index,
+        uint256 amount
+    )
     external
-    returns (uint256 returnAmount)
     {
-        returnAmount = _checkClaim(token, merkleProof, index, account, amount);
-        require (returnAmount > 0);
-        transfer_amount(account, token, returnAmount);
+        require (amount > 0);
+        _checkClaim(token, merkleRoot, merkleProof, index, account, amount);
+        transfer_amount(account, token, amount);
     }
 
-    function multiClaim(address token, address payable account, bytes32[][] calldata merkleProofs, uint256[] calldata indexes, uint256[] calldata amounts)
+    function multiClaim (
+        address token,
+        address payable account,
+        bytes32[] calldata merkleRoots,
+        bytes32[][] calldata merkleProofs,
+        uint256[] calldata indexes,
+        uint256[] calldata amounts
+    )
     external
     returns (uint256 returnAmount)
     {
         require(merkleProofs.length == indexes.length
-                && merkleProofs.length == amounts.length, 'Inv params');
+                && merkleProofs.length == amounts.length
+                && merkleProofs.length == merkleRoots.length, 'Inv params');
         returnAmount = 0;
         for(uint256 i = 0; i < merkleProofs.length; i++)  {
-            returnAmount = returnAmount.add(_checkClaim(token, merkleProofs[i], indexes[i], account, amounts[i]));
+            _checkClaim(token, merkleRoots[i], merkleProofs[i], indexes[i], account, amounts[i]);
+            returnAmount = returnAmount.add(amounts[i]);
         }
         require (returnAmount > 0);
         transfer_amount(account, token, returnAmount);
